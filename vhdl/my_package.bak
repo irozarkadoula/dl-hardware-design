@@ -1,0 +1,259 @@
+library ieee;
+library work;
+--library ieee_proposed;
+Library floatfixlib;
+--use ieee_proposed.fixed_float_types.all;
+--use ieee_proposed.float_pkg.all;
+--use ieee_proposed.math_utility_pkg.all;
+--use ieee_proposed.fixed_pkg.all;
+use ieee.float_pkg.all;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_arith.all;
+use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
+use ieee.math_real."ceil";
+use ieee.math_real."log2";
+
+
+package my_package is
+--depth, tile_size, g_DEPTH must be aligned
+constant depth : integer :=8;
+type array_adder is array(natural range <>) of float(8 downto -23);
+	
+constant g_DEPTH    : integer := 8;  --1024
+constant tile_size : integer := 8;
+constant network_size : integer := 8;
+constant number_of_iterations: integer:=network_size/tile_size;
+constant ram_size: integer := integer (ceil(log2(real(network_size))));
+constant terminal : integer := network_size/2;
+
+type array_1 is array(0 to g_DEPTH-1) of float(8 downto -23);
+type array_2 is array(0 to g_DEPTH-1) of array_1;
+type array_ram is array(0 to network_size-1) of float(8 downto -23);
+
+component unit1
+port(reset: in std_logic ;
+clk: in std_logic;
+output_unit1: out float(8 downto -23));
+end component;
+
+component unit2
+port(reset: in std_logic;
+clk: in std_logic;
+input_unit2: in float(8 downto -23);
+output_unit2: out float(8 downto -23));
+end component;
+
+component sigmoid 
+port(reset : in std_logic;
+clk : in std_logic;
+input: in  float(8 downto -23); 
+output: out float(8 downto -23));
+end component;
+
+
+component sigmoid2
+port(reset : in std_logic;
+clk : in std_logic;
+input: in  float(8 downto -23); 
+output: out float(8 downto -23));
+end component;
+
+component sigmoid3
+port(reset : in std_logic;
+clk : in std_logic;
+input: in  float(8 downto -23); 
+output: out float(8 downto -23));
+end component;
+
+
+
+component rams_01
+generic(ram_size : integer);
+port (clk : in std_logic;
+		we : in std_logic;
+		en : in std_logic;
+		addr : in std_logic_vector(ram_size-1 downto 0);
+		file_ram : in string(1 to 16);
+		di : in float(8 downto -23);
+		do : out float(8 downto -23));
+end component;
+
+
+
+component rams_02
+generic(ram_size : integer);
+port (clk : in std_logic;
+		we : in std_logic;
+		en : in std_logic;
+		rst : std_logic;
+		wr_addr : in std_logic_vector(ram_size-1 downto 0);
+		rd_addr : in std_logic_vector(ram_size-1 downto 0);
+		di : in float(8 downto -23);
+		do : out float(8 downto -23));
+end component;
+
+component module_fifo_regs_with_flags
+  generic (
+    g_WIDTH    : natural := 32;
+    g_DEPTH    : integer := 16;  --1024
+    g_AF_LEVEL : integer := 12;  --896
+    g_AE_LEVEL : integer := 4    --128
+	 );
+  port (
+    i_rst_sync : in std_logic;
+    i_clk      : in std_logic;
+ 
+    -- FIFO Write Interface
+    i_wr_en   : in  std_logic;
+    i_wr_data : in  array_1;
+    o_af      : out std_logic;
+    o_full    : out std_logic;
+ 
+    -- FIFO Read Interface
+    i_rd_en   : in  std_logic;
+    o_rd_data : out array_1;
+    o_ae      : out std_logic;
+    o_empty   : out std_logic
+    );
+end component;
+
+component module_fifo2_regs_with_flags
+  generic (
+    g_WIDTH    : natural := 32;
+    g_DEPTH    : integer := 16;  --1024
+    g_AF_LEVEL : integer := 12;   --896
+    g_AE_LEVEL : integer := 4   --128
+ );
+  port (
+    i_rst_sync : in std_logic;
+    i_clk      : in std_logic;
+ 
+    -- FIFO Write Interface
+    i_wr_en   : in  std_logic ;
+    i_wr_data : in float(8 downto -23);
+    o_af      : out std_logic;
+    o_full    : out std_logic;
+ 
+    -- FIFO Read Interface
+    i_rd_en   : in  std_logic;
+    o_rd_data: out float(8 downto -23);
+    o_ae      : out std_logic;
+    o_empty   : out std_logic
+    );
+end component;
+
+component module_fifo3_regs_with_flags
+  generic (
+    g_WIDTH    : natural := 32;
+    g_DEPTH    : integer := 16;  --1024
+    g_AF_LEVEL : integer := 12;   --896
+    g_AE_LEVEL : integer := 4   --128
+ );
+  port (
+    i_rst_sync : in std_logic ;
+    i_clk      : in std_logic;
+ 
+    -- FIFO Write Interface
+    i_wr_en   : in  std_logic ;
+    i_wr_data : in float(8 downto -23);
+    o_af      : out std_logic;
+    o_full    : out std_logic;
+ 
+    -- FIFO Read Interface
+    i_rd_en   : in  std_logic ;
+    o_rd_data: out float(8 downto -23);
+    o_ae      : out std_logic;
+    o_empty   : out std_logic
+    );
+end component;
+
+component module_fifo4_regs_with_flags
+  generic (
+    g_WIDTH    : natural := 32;
+    g_DEPTH    : integer := 16;  --1024
+    g_AF_LEVEL : integer := 12;   --896
+    g_AE_LEVEL : integer := 4   --128
+ );
+  port (
+    i_rst_sync : in std_logic ;
+    i_clk      : in std_logic;
+ 
+    -- FIFO Write Interface
+    i_wr_en   : in  std_logic ;
+    i_wr_data : in float(8 downto -23);
+    o_af      : out std_logic;
+    o_full    : out std_logic;
+ 
+    -- FIFO Read Interface
+    i_rd_en   : in  std_logic ;
+    o_rd_data: out float(8 downto -23);
+    o_ae      : out std_logic;
+    o_empty   : out std_logic
+    );
+end component;
+
+component module_fifo5_regs_with_flags
+  generic (
+    g_WIDTH    : natural := 32;
+    g_DEPTH    : integer := 16;  --1024
+    g_AF_LEVEL : integer := 12;   --896
+    g_AE_LEVEL : integer := 4   --128
+ );
+  port (
+    i_rst_sync : in std_logic ;
+    i_clk      : in std_logic;
+ 
+    -- FIFO Write Interface
+    i_wr_en   : in  std_logic ;
+    i_wr_data : in float(8 downto -23);
+    o_af      : out std_logic;
+    o_full    : out std_logic;
+ 
+    -- FIFO Read Interface
+    i_rd_en   : in  std_logic ;
+    o_rd_data: out float(8 downto -23);
+    o_ae      : out std_logic;
+    o_empty   : out std_logic
+    );
+end component;
+
+component module_fifo6_regs_with_flags
+  generic (
+    g_WIDTH    : natural := 32;
+    g_DEPTH    : integer := 16;  --1024
+    g_AF_LEVEL : integer := 12;   --896
+    g_AE_LEVEL : integer := 4   --128
+ );
+  port (
+    i_rst_sync : in std_logic ;
+    i_clk      : in std_logic;
+ 
+    -- FIFO Write Interface
+    i_wr_en   : in  std_logic ;
+    i_wr_data : in float(8 downto -23);
+    o_af      : out std_logic;
+    o_full    : out std_logic;
+ 
+    -- FIFO Read Interface
+    i_rd_en   : in  std_logic ;
+    o_rd_data: out float(8 downto -23);
+    o_ae      : out std_logic;
+    o_empty   : out std_logic
+    );
+end component;
+
+component multiplier
+port(a: in float(8 downto -23);
+b: in float(8 downto -23);
+c: out float(8 downto -23));
+end component;
+
+component adder_tree
+generic(depth1: integer);
+port(array_input: in array_adder(0 to depth1-1);
+acc_output: out float(8 downto -23));
+end component;
+
+end my_package;
+
